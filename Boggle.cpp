@@ -1,3 +1,8 @@
+/*
+ * 疑问：　Q是否代表Qu
+ *         getAllWords 中的单词是否长度大于等于３？
+ *         结果单词的大小写？ 
+ */
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -6,6 +11,7 @@
 #include <stack>
 #include <utility>
 
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 
@@ -16,6 +22,16 @@ string to_lower(string str){
     for (int i = 0;i < str.size(); ++i){
         char c = str[i];
         if (c >= 'A' && c <= 'Z')c = c - 'A' + 'a';
+        res += c;
+    }
+    return res;
+}
+
+string to_upper(string str){
+    string res;
+    for (int i = 0;i < str.size(); ++i){
+        char c = str[i];
+        if (c >= 'a' && c <= 'z')c = c - 'a' + 'A';
         res += c;
     }
     return res;
@@ -44,9 +60,7 @@ class Trie{
 			Node *p = root;
 			for (size_t i = 0;i < word.size();++i){
 				char c = word[i];
-				//转为小写
-				if (c >= 'A' && c <= 'Z')c = c - 'A' + 'a';
-				c -= 'a';
+				ToID(c);
 				// c [0, 26)
 				if (!p -> children[c])p -> children[c] = new Node(p);
 				p = p -> children[c];
@@ -57,8 +71,7 @@ class Trie{
 			pointer = root;
 		}
 		bool go(char c){
-			if (c >= 'A' && c <= 'Z')c = c - 'A' + 'a';
-			c -= 'a';
+			ToID(c);
 			if (pointer -> children[c]){
 				pointer = pointer -> children[c];
 				return true;
@@ -66,10 +79,10 @@ class Trie{
 			//没有该节点
 			return false;
 		}
-		void toback(){
+		inline void toback(){
 			pointer = pointer -> parent;
 		}
-		bool isWord(){
+		inline bool isWord(){
 			return pointer -> isWord;
 		}
 		Node* GetPointer(){
@@ -87,6 +100,10 @@ class Trie{
 			}
 			delete root;
 		}
+		void ToID(char &c){
+			if (c >= 'a' && c <= 'z')c -= 'a';
+			else c -= 'A';
+		}
 	private:
 		Node *root;
 		Node *pointer;
@@ -101,7 +118,18 @@ const string dice16[16] = {
  
 class BoggleBoard{ 
 	public: 
-		BoggleBoard(string inputfile); 
+		BoggleBoard(string inputfile){
+			ifstream fin(inputfile.c_str());
+			fin >> row >> col;
+			data = vector<vector<char> >(row, vector<char>(col)); 
+			for (int r = 0;r < row; ++r){
+				for (int c = 0;c < col; ++c){
+					string temp;
+					fin >> temp;
+					data[r][c] = temp[0];
+				}
+			}
+		}
 		BoggleBoard(int n = 4, int m = 4){ 
 			row = n; 
 			col = m; 
@@ -147,7 +175,21 @@ class BoggleSolver{
 			string word;
 			fin >> word;
 			while (!fin.eof()){
-				trie.push(word);
+				//A valid word must contain at least 3 letters. 
+				if (word.size() >= 3){
+					word = to_upper(word);
+					string temp;
+					//Qu -> Q
+					for (int i = 0;i < word.size(); ++i){
+						if (word[i] == 'Q'){
+							temp += 'Q';
+							++i;
+						}else{
+							temp += word[i];
+						}
+					}
+					trie.push(temp);
+				}
 				fin >> word;
 			}
 		}
@@ -160,7 +202,15 @@ class BoggleSolver{
 			}
 			return res;
 		}	
-		int score(string w); 
+		int score(string w){
+			int len = w.size();
+			if (len <= 2)return 0;
+			if (len <= 4)return 1;
+			if (len == 5)return 2;
+			if (len == 6)return 3;
+			if (len == 7)return 5;
+			return 11;
+		}	
 	private:
 		void DFS(int r, int c, BoggleBoard &board, set<string> &res){
 			vector<vector<bool> > vis(board.rows(), vector<bool>(board.cols(), false));
@@ -170,7 +220,7 @@ class BoggleSolver{
 			if (!trie.go(ch))return;
 			string str;
 			str += ch;
-			st.push(Rec(r, c, 0, str));
+			st.push(Rec(r, c, 0));
 			vis[r][c] = true;
 			if (trie.isWord())res.insert(str);
 			while (!st.empty()){
@@ -179,6 +229,7 @@ class BoggleSolver{
 				if (rec.step == 8){
 					vis[rec.r][rec.c] = false;
 					trie.toback();
+					str.erase(str.end() - 1);
 					continue;
 				}
 
@@ -195,11 +246,18 @@ class BoggleSolver{
 						char ch = board.get(nr, nc);
 						if (trie.go(ch)){
 							vis[nr][nc] = true;
-							string nstr = rec.str;
-							nstr += ch;
-							st.push(Rec(nr, nc, 0, nstr));
+							str += ch;
+							st.push(Rec(nr, nc, 0));
 							if (trie.isWord()){
-								res.insert(nstr);
+								string temp;
+								for (int i = 0;i < str.size();++i){
+									if (str[i] != 'Q'){
+										temp += str[i];
+									}else{
+										temp += "QU";
+									}
+								}
+								res.insert(temp);
 							}
 						}
 					}
@@ -212,9 +270,8 @@ class BoggleSolver{
 		struct Rec{
 			int r, c;
 			int step;
-			string str;
 			Rec(){}
-			Rec(int r, int c, int step, string str):r(r),c(c),step(step),str(str){}
+			Rec(int r, int c, int step):r(r),c(c),step(step){}
 		};
 };
 
@@ -226,7 +283,9 @@ class BoggleSolverSimple{
 			string word;
 			fin >> word;
 			while(!fin.eof()){
-				dict.insert(word);
+				//A valid word must contain at least 3 letters. 
+				if (word.size() >= 3)
+					dict.insert(word);
 				fin >> word;
 			}
 		}
@@ -271,36 +330,30 @@ class BoggleSolverSimple{
 
 
 int main(){
-	srand(time(0));
-	const string filename = "dictionary-yawl.txt";
-	vector<string> dict;
-	ifstream fin(filename.c_str());
-	string word;
-	fin >> word;
-	while (!fin.eof()){
-		dict.push_back(word);
-		fin >> word;
-	}
+	//srand(time(0));
 
-	Trie trie;
-	for (size_t i = 0;i < dict.size(); ++i){
-		string word = dict[i];
-		trie.push(word);
-	}
-
-	BoggleBoard bog;
-	for (int r = 0;r < 4;++r){
-		for (int c = 0;c < 4;++c){
+	BoggleBoard bog(10,10);
+	for (int r = 0;r < bog.rows();++r){
+		for (int c = 0;c < bog.cols();++c){
 			cout << bog.get(r,c) << " ";
 		}
 		cout << endl;
 	}
 
-	BoggleSolver solver(filename);
-	BoggleSolverSimple solverSimple(filename);
+	const string filename = "dictionary-algs4.txt";
 	clock_t t = clock();
+	BoggleSolver solver(filename);
 	set<string> se = solver.getAllWords(bog);
 	cout << "Used Time: "<< double((clock() - t)*1.0/CLOCKS_PER_SEC) << endl;
+	cout << se.size() << endl;
+	int score = 0;
+	for (auto s:se){
+		score += solver.score(s);
+		cout << s << endl;
+	}
+	cout << "Score: " << score << endl;
+	/*
+	BoggleSolverSimple solverSimple(filename);
 	clock_t t2 = clock();
 	set<string> se2 = solverSimple.getAllWords(bog);
 	cout << "Used Time: "<< double((clock() - t2)*1.0/CLOCKS_PER_SEC) << endl;
@@ -319,6 +372,7 @@ int main(){
 		if (!se.count(*i2))cout << "Quick hasn't " << *i2 << endl;
 	}
 	cout << "Wrong Time: " << wrong << endl;
+	*/
 
 	return 0;
 
