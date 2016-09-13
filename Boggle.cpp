@@ -329,8 +329,9 @@ class BoggleSolverSimple{
 };
 
 
-int main(){
+int Test(){
 	//srand(time(0));
+	string filename = "dictionary-algs4.txt";
 
 	BoggleBoard bog(10,10);
 	for (int r = 0;r < bog.rows();++r){
@@ -340,7 +341,6 @@ int main(){
 		cout << endl;
 	}
 
-	const string filename = "dictionary-algs4.txt";
 	clock_t t = clock();
 	BoggleSolver solver(filename);
 	set<string> se = solver.getAllWords(bog);
@@ -376,4 +376,131 @@ int main(){
 
 	return 0;
 
+}
+
+void ShowBoggle(BoggleBoard &bog){
+	for (int r = 0;r < bog.rows();++r){
+		for (int c = 0;c < bog.cols();++c){
+			cout << bog.get(r,c) << " ";
+		}
+		cout << endl;
+	}
+}
+
+void Help(){
+	cout << endl;
+	cout << "You can input these commands" << endl;
+	cout << "   -s :show what you have found" << endl;
+	cout << "   -w :Watch the BoggleBoard" << endl;
+	cout << endl;
+}
+
+void StartGame(string filename){
+REINPUT:
+	cin.clear();
+	cin.sync();
+	cout << "Please Input The Size of BoggleBoard (rows, cols), range [1,20]\n";
+	int rows, cols;
+	int gameTime;
+	cin >> rows >> cols;
+	if (rows >= 1 && rows <= 20 && cols >= 1 && cols <= 20){
+		set<string> found;
+		int score = 0;
+REINPUT_TIME:
+		cin.clear();
+		cin.sync();
+		cout << "Please Input Game Time (seconds)" << endl;
+		cin >> gameTime;
+		if (gameTime <= 0){
+			cout << "InValid Time, Please Input a positive number" << endl;
+			goto REINPUT_TIME;
+		}
+		BoggleBoard bog(rows, cols);
+		BoggleSolver solver(filename);
+		set<string> ans = solver.getAllWords(bog);
+		while (!ans.size()){
+			cout << "Aoh! Restart Boggle" << endl;
+			bog = BoggleBoard(rows, cols);
+			ans = solver.getAllWords(bog);
+		}
+		Help();
+		cout << "Are You Ready? Please input any key" << endl;
+		char ch;
+		cin >> ch;
+		ShowBoggle(bog);
+
+
+		time_t stTime = time(0);
+		string input;
+		while (1){
+			cout << endl;
+			cin >> input;
+			input = to_upper(input);
+			if (input == "-S"){
+				printf("Num of Found Words: %lu\n", found.size());
+				for (set<string>::iterator it = found.begin(); it != found.end(); ++it){
+					cout << *it << " ";
+				}
+				cout << endl;
+			}else if (input == "-W"){
+				ShowBoggle(bog);
+			}else if (input.empty() || input[0] == '-'){
+				Help();
+			}else{
+				time_t nt = time(0);
+				int useTime = nt - stTime;
+				if (useTime >= gameTime){
+					printf("Time Over, Final Score: %d\n", score);
+					break;
+				}
+				if (ans.count(input)){
+					if (!found.count(input)){
+						int u = solver.score(input);
+						printf("Good!  +%d \n", u);
+						score += u;						
+						found.insert(input);
+						if (found.size() == ans.size()){
+							printf("Congradulation! You found ALL WORDS! \n");
+							break;
+						}
+					}else{
+						printf("You have inputed it :-(\n");
+					}
+				}else{
+					printf("No The Word ~ ~\n");
+				}
+				printf("Score: %d, Remain Time: %ds\n", score, gameTime - useTime);
+			}
+		}
+
+		printf("Num of Found Words: %lu\n", found.size());
+		for (set<string>::iterator it = found.begin(); it != found.end(); ++it){
+			cout << *it << " ";
+		}
+		cout << endl;
+
+		printf("Num of Not Found Words: %lu\n", ans.size() - found.size());
+		for (set<string>::iterator it = ans.begin(); it != ans.end(); ++it){
+			if (!found.count(*it))
+				cout << *it << " ";
+		}
+		cout << endl << endl;
+
+		cin.clear();
+
+
+	}else{
+		cout << "Invalid Input! You can input 4 4" << endl;
+		goto REINPUT;
+	}
+
+}
+
+int main(){
+	srand(time(0));
+	string filename = "dictionary-algs4.txt";
+	while (1){
+		StartGame(filename);
+	}
+	return 0;
 }
