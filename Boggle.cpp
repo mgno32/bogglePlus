@@ -3,6 +3,7 @@
  *         getAllWords 中的单词是否长度大于等于３？
  *         结果单词的大小写？ 
  */
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -12,6 +13,7 @@
 #include <utility>
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 
@@ -170,7 +172,8 @@ class BoggleSolver{
 				string info = "打开文件失败，请确定";
 				info += dictionary_file;
 				info += "文件在当前目录";
-				throw info;
+				cout << info << endl;
+				return;
 			}
 			string word;
 			fin >> word;
@@ -178,10 +181,11 @@ class BoggleSolver{
 				//A valid word must contain at least 3 letters. 
 				if (word.size() >= 3){
 					word = to_upper(word);
+					dict.insert(word); // upper
 					string temp;
 					//Qu -> Q
 					for (int i = 0;i < word.size(); ++i){
-						if (word[i] == 'Q'){
+						if (word[i] == 'Q' && i + 1 < word.size() && word[i + 1] == 'U'){
 							temp += 'Q';
 							++i;
 						}else{
@@ -203,6 +207,7 @@ class BoggleSolver{
 			return res;
 		}	
 		int score(string w){
+			if (!dict.count(to_upper(w)))return 0;
 			int len = w.size();
 			if (len <= 2)return 0;
 			if (len <= 4)return 1;
@@ -266,6 +271,7 @@ class BoggleSolver{
 		}
 	private:
 		Trie trie;
+		set<string> dict;
 		//记录调用信息
 		struct Rec{
 			int r, c;
@@ -329,6 +335,7 @@ class BoggleSolverSimple{
 };
 
 
+#ifdef TEST_MODE
 int Test(){
 	//srand(time(0));
 	string filename = "dictionary-algs4.txt";
@@ -377,6 +384,7 @@ int Test(){
 	return 0;
 
 }
+#endif
 
 void ShowBoggle(BoggleBoard &bog){
 	for (int r = 0;r < bog.rows();++r){
@@ -395,22 +403,25 @@ void Help(){
 	cout << endl;
 }
 
+void InputInt(int &a){
+	string buf;
+	cin >> buf;
+	sscanf(buf.c_str(), "%d", &a);
+}
+
 void StartGame(string filename){
 REINPUT:
-	cin.clear();
-	cin.sync();
 	cout << "Please Input The Size of BoggleBoard (rows, cols), range [1,20]\n";
 	int rows, cols;
+	InputInt(rows);
+	InputInt(cols);
 	int gameTime;
-	cin >> rows >> cols;
 	if (rows >= 1 && rows <= 20 && cols >= 1 && cols <= 20){
 		set<string> found;
 		int score = 0;
 REINPUT_TIME:
-		cin.clear();
-		cin.sync();
 		cout << "Please Input Game Time (seconds)" << endl;
-		cin >> gameTime;
+		InputInt(gameTime);
 		if (gameTime <= 0){
 			cout << "InValid Time, Please Input a positive number" << endl;
 			goto REINPUT_TIME;
@@ -450,7 +461,7 @@ REINPUT_TIME:
 				time_t nt = time(0);
 				int useTime = nt - stTime;
 				if (useTime >= gameTime){
-					printf("Time Over, Final Score: %d\n", score);
+					printf("Time Over, Final Score: %d\n\n", score);
 					break;
 				}
 				if (ans.count(input)){
@@ -477,7 +488,7 @@ REINPUT_TIME:
 		for (set<string>::iterator it = found.begin(); it != found.end(); ++it){
 			cout << *it << " ";
 		}
-		cout << endl;
+		cout << endl << endl;
 
 		printf("Num of Not Found Words: %lu\n", ans.size() - found.size());
 		for (set<string>::iterator it = ans.begin(); it != ans.end(); ++it){
@@ -485,8 +496,6 @@ REINPUT_TIME:
 				cout << *it << " ";
 		}
 		cout << endl << endl;
-
-		cin.clear();
 
 
 	}else{
@@ -498,9 +507,21 @@ REINPUT_TIME:
 
 int main(){
 	srand(time(0));
-	string filename = "dictionary-algs4.txt";
+	string filename = "dictionary-yawl.txt";
+	ifstream fin(filename.c_str());
+	if (fin.fail()){
+		cout << "No file: " << filename << endl;
+		return 1;
+	}
 	while (1){
 		StartGame(filename);
+		cout << "Input Q to exit, and other input to continue :-)" << endl;
+		char c;
+		cin >> c;
+		if (c == 'Q' || c == 'q'){
+			cout << "See You" << endl;
+			break;
+		}
 	}
 	return 0;
 }
